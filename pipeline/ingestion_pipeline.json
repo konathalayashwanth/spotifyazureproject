@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "azure_sql",
+				"name": "azure_sql_to_datalake",
 				"type": "Copy",
 				"dependsOn": [
 					{
@@ -31,7 +31,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "select * from @{pipeline().parameters.schema}.@{pipeline().parameters.table} where @{pipeline().parameters.cdc_col}> '\n    @{if(empty(pipeline().parameters.from_date),activity('last_cdc').output.value[0].cdc,pipeline().parameters.from_date)}",
+							"value": "select * from @{pipeline().parameters.schema}.@{pipeline().parameters.table} where @{pipeline().parameters.cdc_col}> '@{if(empty(pipeline().parameters.from_date),activity('last_cdc').output.value[0].cdc,\n    pipeline().parameters.from_date)}'",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -109,7 +109,10 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"container": "bronze",
-							"folder": "cdc",
+							"folder": {
+								"value": "@{pipeline().parameters.table}_cdc",
+								"type": "Expression"
+							},
 							"file": "cdc.json"
 						}
 					},
@@ -138,7 +141,7 @@
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "azure_sql",
+						"activity": "azure_sql_to_datalake",
 						"dependencyConditions": [
 							"Completed"
 						]
@@ -147,7 +150,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
-						"value": "@greater(activity('azure_sql').output.dataRead,0)",
+						"value": "@greater(activity('azure_sql_to_datalake').output.dataRead,0)",
 						"type": "Expression"
 					},
 					"ifFalseActivities": [
@@ -272,7 +275,10 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"container": "bronze",
-										"folder": "cdc",
+										"folder": {
+											"value": "@{pipeline().parameters.table}_cdc",
+											"type": "Expression"
+										},
 										"file": "empty.json"
 									}
 								}
@@ -283,7 +289,10 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"container": "bronze",
-										"folder": "cdc",
+										"folder": {
+											"value": "@{pipeline().parameters.table}_cdc",
+											"type": "Expression"
+										},
 										"file": "cdc.json"
 									}
 								}
